@@ -1,0 +1,13 @@
+[package]
+name = "qr_app"
+version = "0.1.0"
+build = "build.rs"
+edition = "2021"
+
+[dependencies]
+fast_qr = { version = "0.12.5", features = ["image", "svg"] }
+log = { version = "0.4.21", features = ["release_max_level_error"] }
+slint = "1.6.0"
+
+[build-dependencies]
+slint-build = "1.6.0"

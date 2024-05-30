@@ -1,0 +1,122 @@
+
+import { VerticalBox, Button, ComboBox, TextEdit } from "std-widgets.slint";
+
+enum EcLevel { Default, L, M, Q, H}
+
+enum ImageStatus { None, Image, Error}
+
+// Callbacks to be handled by native Rust code
+export global NativeCallbacks {
+    callback generate_qr_code(string, EcLevel);
+}
+
+// Global singleton for storing state
+export global State {
+    // The data to convert to a qr code
+    in property <string> data;
+    // Currently selected error correction level
+    in property <EcLevel> ec_level;
+    // Whether to display an image, error message, or neither
+    in-out property <ImageStatus> image_status;
+    // Image of QR Code
+    in property <image> img;
+    // Error message of QR code generation
+    in property <string> err_msg;
+
+    // To be called when the data or ec_level is changed
+    public function update_image() {
+        if (self.data == "") {
+            self.image_status = ImageStatus.None
+        } else {
+            NativeCallbacks.generate_qr_code(self.data, self.ec_level)
+        }
+    }
+}
+
+// Contains settings the user can change, and the main text input box
+component InfoAndSettings inherits VerticalBox {
+    spacing: 10px;
+
+    Text {
+        text: "Error correction level";
+    }
+
+    // User selects error correction level
+    ComboBox {
+        property <[EcLevel]> ec-levels: [EcLevel.Default, EcLevel.L, EcLevel.M, EcLevel.Q, EcLevel.H];
+        property <[string]> ec-strings: ["Default", "Low (7%)", "Medium (15%)", "Quartile (25%)", "High (30%)"];
+
+        selected => {
+            if (ec-levels[self.current-index] != State.ec_level) {
+                State.ec_level = ec-levels[self.current-index];
+                State.update_image();
+            }
+            ;
+        }
+
+        model: ec-strings;
+    }
+
+    Text {
+        vertical-alignment: top;
+        text: "Enter text to convert:";
+        font-size: 16px;
+    }
+
+    // The input box for the text to convert to a qr code
+    TextEdit {
+        wrap: TextWrap.word-wrap;
+
+        vertical-stretch: 1;
+        padding: 5px;
+        edited(str) => {
+            if (str != State.data) {
+                State.data = str;
+                State.update_image();
+            }
+        }
+    }
+}
+
+// Displays the qr code image or error text
+component ImageDisplay inherits Rectangle {
+    // background: Colors.lightgray;
+    Image {
+        image-fit: ImageFit.contain;
+        image-rendering: ImageRendering.pixelated;
+        source: State.img;
+        visible: State.image_status == ImageStatus.Image;
+        height: parent.height;
+        width: parent.width;
+    }
+
+    Text {
+        text: State.err_msg;
+        visible: State.image_status == ImageStatus.Error;
+        // color: Colors.red;
+        font-size: 16px;
+    }
+}
+
+export component MainWindow inherits Window {
+    title: "QR Code Generator";
+
+    preferred-height: 800px;
+    preferred-width: 1200px;
+    min-height: 300px;
+    min-width: 500px;
+
+    HorizontalLayout {
+        padding: 10px;
+        spacing: Math.max(10px, self.width * 2%);
+
+        InfoAndSettings {
+            horizontal-stretch: 0.35;
+        }
+
+        ImageDisplay {
+            horizontal-stretch: 0.65;
+            max-width: self.height;
+        }
+    }
+}
