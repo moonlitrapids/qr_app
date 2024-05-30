@@ -4,6 +4,8 @@ version = "0.1.0"
 build = "build.rs"
 edition = "2021"
 
+license = "GPL-3.0-or-later"
+
 [dependencies]
 fast_qr = { version = "0.12.5", features = ["image", "svg"] }
 log = { version = "0.4.21", features = ["release_max_level_error"] }
